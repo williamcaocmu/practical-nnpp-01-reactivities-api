@@ -9,6 +9,7 @@ import {
   HttpCode,
   HttpStatus,
   Put,
+  Query,
 } from '@nestjs/common';
 import { ProfilesService } from './profiles.service';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -55,7 +56,10 @@ export class ProfilesController {
   }
 
   @Get(':id/follow-list')
-  getFollowList(@Param('id') id: string) {
-    return this.profilesService.getFollowList(id);
+  getFollowList(
+    @Param('id') id: string,
+    @Query('predicate') predicate: 'followers' | 'following',
+  ) {
+    return this.profilesService.getFollowList(id, predicate);
   }
 }

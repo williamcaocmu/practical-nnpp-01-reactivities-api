@@ -6,7 +6,7 @@ import {
 import { FileService } from 'src/common/files/file.service';
 import { File } from 'src/common/files/types/file.type';
 import { PrismaService } from 'nestjs-prisma';
-
+import { Prisma } from '@prisma/client';
 @Injectable()
 export class ProfilesService {
   constructor(
@@ -64,10 +64,39 @@ export class ProfilesService {
             publicId: true,
           },
         },
+        followers: {
+          select: {
+            follower: {
+              select: {
+                id: true,
+                displayName: true,
+                username: true,
+                imageUrl: true,
+              },
+            },
+          },
+        },
+        following: {
+          select: {
+            following: {
+              select: {
+                id: true,
+                displayName: true,
+                username: true,
+                imageUrl: true,
+              },
+            },
+          },
+        },
       },
     });
-
-    return profile;
+    return {
+      ...profile,
+      followersCount: profile.followers.length,
+      followingCount: profile.following.length,
+      followers: profile.followers.map((follower) => follower.follower),
+      following: profile.following.map((following) => following.following),
+    };
   }
 
   async getPhotos(profileId: string) {
@@ -153,7 +182,7 @@ export class ProfilesService {
     }
   }
 
-  async getFollowList(profileId: string) {
+  async getFollowList(profileId: string, predicate: 'followers' | 'following') {
     const profile = await this.db.user.findUnique({
       where: { id: profileId },
     });
@@ -162,28 +191,29 @@ export class ProfilesService {
       throw new NotFoundException('Profile not found');
     }
 
+    const commonSelectStatement:
+      | Prisma.UserFollowingsSelect['follower']
+      | Prisma.UserFollowingsSelect['following'] = {
+      select: {
+        id: true,
+        displayName: true,
+        username: true,
+        imageUrl: true,
+      },
+    };
+
+    const selectStatement: Prisma.UserFollowingsSelect =
+      predicate === 'followers'
+        ? { follower: commonSelectStatement }
+        : { following: commonSelectStatement };
+
     const followList = await this.db.userFollowings.findMany({
       where: { followingId: profileId },
-      select: {
-        follower: {
-          select: {
-            id: true,
-            displayName: true,
-            username: true,
-            imageUrl: true,
-          },
-        },
-        following: {
-          select: {
-            id: true,
-            displayName: true,
-            username: true,
-            imageUrl: true,
-          },
-        },
-      },
+      select: selectStatement,
     });
 
-    return followList;
+    return predicate === 'followers'
+      ? followList.map((follow) => follow.follower)
+      : followList.map((follow) => follow.following);
   }
 }
