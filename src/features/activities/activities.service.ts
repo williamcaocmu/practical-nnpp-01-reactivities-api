@@ -57,6 +57,14 @@ export class ActivitiesService {
     const activity = await this.db.activity.findUnique({
       where: { id },
       include: {
+        host: {
+          select: {
+            id: true,
+            displayName: true,
+            imageUrl: true,
+            username: true,
+          },
+        },
         attendees: {
           select: {
             isHost: true,
@@ -124,24 +132,54 @@ export class ActivitiesService {
       },
     });
     if (!activity) throw new NotFoundException('Activity not found');
-    if (activity.isCanceled)
-      throw new BadRequestException('Activity is cancelled');
+
     const attendance = activity.attendees.find(
       ({ userId }) => userId === user.id,
     );
-    if (attendance) throw new BadRequestException('You are already attending');
-    if (activity.hostId === user.id)
-      throw new BadRequestException('You cannot attend your own activity');
+    const isHost = activity.attendees.some(
+      ({ userId, isHost }) => userId === user.id && isHost,
+    );
 
-    await this.db.activityAttendee.create({
-      data: {
-        userId: user.id,
-        activityId: id,
-      },
-    });
+    if (isHost) {
+      //  if host, cancel activity
+      await this.db.activity.update({
+        where: { id },
+        data: { isCanceled: !activity.isCanceled },
+      });
+    } else {
+      if (attendance) {
+        // delete attendance
+        await this.db.activityAttendee.delete({
+          where: {
+            userId_activityId: {
+              userId: user.id,
+              activityId: id,
+            },
+          },
+        });
+      } else {
+        // create attendance
+        await this.db.activityAttendee.create({
+          data: {
+            userId: user.id,
+            activityId: id,
+          },
+        });
+      }
+    }
   }
 
-  remove(id: string) {
+  async remove(id: string) {
+    const activity = await this.db.activity.findUnique({
+      where: { id },
+    });
+
+    if (!activity) throw new NotFoundException('Activity not found');
+
+    if (activity.isCanceled) {
+      throw new BadRequestException('Activity is cancelled');
+    }
+
     return this.db.activity.delete({
       where: { id },
     });
