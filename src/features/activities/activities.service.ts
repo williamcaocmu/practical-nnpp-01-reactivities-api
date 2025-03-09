@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -56,12 +57,30 @@ export class ActivitiesService {
     const activity = await this.db.activity.findUnique({
       where: { id },
       include: {
-        attendees: true,
+        attendees: {
+          select: {
+            isHost: true,
+            user: {
+              select: {
+                id: true,
+                displayName: true,
+                imageUrl: true,
+                username: true,
+              },
+            },
+          },
+        },
       },
     });
     if (!activity) throw new NotFoundException('Activity not found');
 
-    return activity;
+    return {
+      ...activity,
+      attendees: activity.attendees.map((attendee) => ({
+        ...attendee.user,
+        isHost: attendee.isHost,
+      })),
+    };
   }
 
   async update(
@@ -69,7 +88,12 @@ export class ActivitiesService {
     updateActivityDto: UpdateActivityDto,
     user: RequestUser,
   ) {
-    const activity = await this.findOne(id);
+    const activity = await this.db.activity.findUnique({
+      where: { id },
+      include: {
+        attendees: true,
+      },
+    });
 
     if (!activity) throw new NotFoundException('Activity not found');
     const attendance = activity.attendees.find(
@@ -90,6 +114,31 @@ export class ActivitiesService {
     });
 
     return updatedActivity;
+  }
+
+  async attend(id: string, user: RequestUser) {
+    const activity = await this.db.activity.findUnique({
+      where: { id },
+      include: {
+        attendees: true,
+      },
+    });
+    if (!activity) throw new NotFoundException('Activity not found');
+    if (activity.isCanceled)
+      throw new BadRequestException('Activity is cancelled');
+    const attendance = activity.attendees.find(
+      ({ userId }) => userId === user.id,
+    );
+    if (attendance) throw new BadRequestException('You are already attending');
+    if (activity.hostId === user.id)
+      throw new BadRequestException('You cannot attend your own activity');
+
+    await this.db.activityAttendee.create({
+      data: {
+        userId: user.id,
+        activityId: id,
+      },
+    });
   }
 
   remove(id: string) {

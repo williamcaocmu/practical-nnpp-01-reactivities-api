@@ -6,6 +6,8 @@ import {
   Patch,
   Param,
   Delete,
+  HttpStatus,
+  HttpCode,
 } from '@nestjs/common';
 import { ActivitiesService } from './activities.service';
 import { CreateActivityDto, UpdateActivityDto } from './dto';
@@ -29,6 +31,12 @@ export class ActivitiesController {
   @Get()
   findAll() {
     return this.activitiesService.findAll();
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post(':id/attend')
+  attend(@Param('id') id: string, @User() user: RequestUser) {
+    return this.activitiesService.attend(id, user);
   }
 
   @Get(':id')
