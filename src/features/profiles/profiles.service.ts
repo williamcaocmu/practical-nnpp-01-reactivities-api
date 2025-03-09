@@ -152,4 +152,38 @@ export class ProfilesService {
       });
     }
   }
+
+  async getFollowList(profileId: string) {
+    const profile = await this.db.user.findUnique({
+      where: { id: profileId },
+    });
+
+    if (!profile) {
+      throw new NotFoundException('Profile not found');
+    }
+
+    const followList = await this.db.userFollowings.findMany({
+      where: { followingId: profileId },
+      select: {
+        follower: {
+          select: {
+            id: true,
+            displayName: true,
+            username: true,
+            imageUrl: true,
+          },
+        },
+        following: {
+          select: {
+            id: true,
+            displayName: true,
+            username: true,
+            imageUrl: true,
+          },
+        },
+      },
+    });
+
+    return followList;
+  }
 }

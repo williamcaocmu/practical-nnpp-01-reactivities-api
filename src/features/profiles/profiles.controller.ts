@@ -53,4 +53,9 @@ export class ProfilesController {
   follow(@Param('id') id: string, @User() user: RequestUser) {
     return this.profilesService.follow(id, user.id);
   }
+
+  @Get(':id/follow-list')
+  getFollowList(@Param('id') id: string) {
+    return this.profilesService.getFollowList(id);
+  }
 }
