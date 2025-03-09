@@ -8,9 +8,14 @@ import {
   Delete,
   HttpStatus,
   HttpCode,
+  Query,
 } from '@nestjs/common';
 import { ActivitiesService } from './activities.service';
-import { CreateActivityDto, UpdateActivityDto } from './dto';
+import {
+  ActivityPaginationDto,
+  CreateActivityDto,
+  UpdateActivityDto,
+} from './dto';
 import { PublicRoute } from '../auth/decorators/public.decorator';
 import { User } from '../auth/decorators/user.decorator';
 import { RequestUser } from '../auth/types/request-user.type';
@@ -31,6 +36,22 @@ export class ActivitiesController {
   @Get()
   findAll() {
     return this.activitiesService.findAll();
+  }
+
+  @PublicRoute()
+  @Get('paginated')
+  findAllPaginated(
+    @Query() query: ActivityPaginationDto,
+    @User() user?: RequestUser,
+  ) {
+    // Add user ID to params if user is authenticated and using isHost/isGoing filters
+    if (user && (query.isHost || query.isGoing)) {
+      return this.activitiesService.findAllPaginated({
+        ...query,
+        userId: user.id,
+      });
+    }
+    return this.activitiesService.findAllPaginated(query);
   }
 
   @HttpCode(HttpStatus.OK)
