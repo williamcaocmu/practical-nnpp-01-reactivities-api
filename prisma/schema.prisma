@@ -59,6 +59,9 @@ model User {
   // User can have multiple photos
   photos Photo[]
 
+  following UserFollowings[] @relation("Following")
+  followers UserFollowings[] @relation("Followers")
+
   @@index([username])
 }
 
@@ -92,4 +95,17 @@ model Photo {
   user   User   @relation(fields: [userId], references: [id])
 
   @@index([userId])
+}
+
+model UserFollowings {
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  followerId  String
+  followingId String
+
+  follower  User @relation("Following", fields: [followerId], references: [id])
+  following User @relation("Followers", fields: [followingId], references: [id])
+
+  @@id([followerId, followingId])
 }

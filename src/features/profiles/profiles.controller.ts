@@ -47,4 +47,10 @@ export class ProfilesController {
   getPhotos(@Param('id') id: string) {
     return this.profilesService.getPhotos(id);
   }
+
+  @HttpCode(HttpStatus.OK)
+  @Post(':id/follow')
+  follow(@Param('id') id: string, @User() user: RequestUser) {
+    return this.profilesService.follow(id, user.id);
+  }
 }

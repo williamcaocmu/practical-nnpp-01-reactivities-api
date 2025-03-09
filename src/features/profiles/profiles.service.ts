@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { FileService } from 'src/common/files/file.service';
 import { File } from 'src/common/files/types/file.type';
 import { PrismaService } from 'nestjs-prisma';
@@ -110,5 +114,42 @@ export class ProfilesService {
         data: { isMain: true },
       });
     });
+  }
+
+  async follow(targetId: string, observerId: string) {
+    const target = await this.db.user.findUnique({ where: { id: targetId } });
+    const observer = await this.db.user.findUnique({
+      where: { id: observerId },
+    });
+
+    if (!target || !observer) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (targetId === observerId) {
+      throw new BadRequestException('You cannot follow yourself');
+    }
+
+    const existingFollow = await this.db.userFollowings.findFirst({
+      where: { followerId: observerId, followingId: targetId },
+    });
+
+    if (existingFollow) {
+      await this.db.userFollowings.delete({
+        where: {
+          followerId_followingId: {
+            followerId: observerId,
+            followingId: targetId,
+          },
+        },
+      });
+    } else {
+      await this.db.userFollowings.create({
+        data: {
+          followerId: observerId,
+          followingId: targetId,
+        },
+      });
+    }
   }
 }
