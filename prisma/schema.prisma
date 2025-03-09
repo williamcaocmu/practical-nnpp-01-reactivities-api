@@ -55,6 +55,11 @@ model User {
 
   // User can attend multiple activities
   activities ActivityAttendee[]
+
+  // User can have multiple photos
+  photos Photo[]
+
+  @@index([username])
 }
 
 model ActivityAttendee {
@@ -72,4 +77,19 @@ model ActivityAttendee {
   isHost Boolean @default(false)
 
   @@id([userId, activityId])
+}
+
+model Photo {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  url      String
+  isMain   Boolean @default(false)
+  publicId String
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@index([userId])
 }
