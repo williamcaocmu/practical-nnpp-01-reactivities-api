@@ -28,7 +28,15 @@ model Activity {
   longitude   Float
   date        DateTime
 
+  // Host information (direct reference)
+  hostId String
+  host   User   @relation("HostedActivities", fields: [hostId], references: [id])
+
   attendees ActivityAttendee[]
+
+  @@index([hostId])
+  @@index([date])
+  @@index([category])
 }
 
 model User {
@@ -42,6 +50,10 @@ model User {
   username    String  @unique
   imageUrl    String?
 
+  // User can host multiple activities
+  hostedActivities Activity[] @relation("HostedActivities")
+
+  // User can attend multiple activities
   activities ActivityAttendee[]
 }
 
@@ -49,13 +61,15 @@ model ActivityAttendee {
   // Composite primary key
   userId     String
   activityId String
-
-  // Additional fields
-  isHost Boolean @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   // Relationships
   user     User     @relation(fields: [userId], references: [id])
   activity Activity @relation(fields: [activityId], references: [id])
+
+  // Additional fields
+  isHost Boolean @default(false)
 
   @@id([userId, activityId])
 }
