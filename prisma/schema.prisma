@@ -1,0 +1,61 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Activity {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  title       String
+  description String
+  category    String
+  isCanceled  Boolean  @default(false)
+  city        String
+  venue       String
+  latitude    Float
+  longitude   Float
+  date        DateTime
+
+  attendees ActivityAttendee[]
+}
+
+model User {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  email       String  @unique
+  password    String
+  displayName String
+  username    String  @unique
+  imageUrl    String?
+
+  activities ActivityAttendee[]
+}
+
+model ActivityAttendee {
+  // Composite primary key
+  userId     String
+  activityId String
+
+  // Additional fields
+  isHost Boolean @default(false)
+
+  // Relationships
+  user     User     @relation(fields: [userId], references: [id])
+  activity Activity @relation(fields: [activityId], references: [id])
+
+  @@id([userId, activityId])
+}
