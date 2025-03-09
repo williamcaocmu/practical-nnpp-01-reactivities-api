@@ -1,8 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { FileService } from 'src/common/files/file.service';
 import { File } from 'src/common/files/types/file.type';
-import { CreateProfileDto } from './dto/create-profile.dto';
-import { UpdateProfileDto } from './dto/update-profile.dto';
 import { PrismaService } from 'nestjs-prisma';
 
 @Injectable()
@@ -45,23 +43,72 @@ export class ProfilesService {
     });
   }
 
-  create(createProfileDto: CreateProfileDto) {
-    return 'This action adds a new profile';
+  async getProfile(profileId: string) {
+    const profile = await this.db.user.findUnique({
+      where: { id: profileId },
+      select: {
+        id: true,
+        email: true,
+        displayName: true,
+        username: true,
+        imageUrl: true,
+        photos: {
+          select: {
+            id: true,
+            url: true,
+            isMain: true,
+            publicId: true,
+          },
+        },
+      },
+    });
+
+    return profile;
   }
 
-  findAll() {
-    return `This action returns all profiles`;
+  async getPhotos(profileId: string) {
+    const profile = await this.db.user.findUnique({
+      where: { id: profileId },
+    });
+
+    if (!profile) {
+      throw new NotFoundException('Profile not found');
+    }
+
+    const photos = await this.db.photo.findMany({
+      where: { userId: profileId },
+      select: {
+        id: true,
+        url: true,
+        isMain: true,
+        publicId: true,
+      },
+    });
+
+    return photos;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} profile`;
-  }
+  async setMainPhoto(photoId: string) {
+    const photo = await this.db.photo.findUnique({
+      where: { id: photoId },
+    });
 
-  update(id: number, updateProfileDto: UpdateProfileDto) {
-    return `This action updates a #${id} profile`;
-  }
+    if (!photo) {
+      throw new NotFoundException('Photo not found');
+    }
 
-  remove(id: number) {
-    return `This action removes a #${id} profile`;
+    if (photo.isMain) return;
+
+    return this.db.$transaction(async (tx) => {
+      await tx.photo.updateMany({
+        where: { userId: photo.userId },
+        data: { isMain: false },
+      });
+
+      await tx.photo.update({
+        where: { id: photoId },
+        data: { isMain: true },
+      });
+    });
   }
 }
