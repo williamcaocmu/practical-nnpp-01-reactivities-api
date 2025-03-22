@@ -1,9 +1,14 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  BadRequestException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from 'nestjs-prisma';
 import { HashingService } from './hashing/hashing.service';
 import { RequestUser } from './types/request-user.type';
 import { JwtPayload } from './types/jwt-payload.type';
+import { RegisterDto } from './dto';
 
 @Injectable()
 export class AuthService {
@@ -65,5 +70,29 @@ export class AuthService {
     });
 
     return user;
+  }
+
+  async register(body: RegisterDto) {
+    const { email, password, displayName, username } = body;
+
+    const existingUser = await this.db.user.findUnique({
+      where: { email },
+    });
+
+    if (existingUser) {
+      throw new BadRequestException('User already exists');
+    }
+
+    const hashedPassword = await this.hashingService.hash(password);
+
+    await this.db.user.create({
+      data: { email, password: hashedPassword, displayName, username },
+      select: {
+        id: true,
+        email: true,
+        displayName: true,
+        username: true,
+      },
+    });
   }
 }

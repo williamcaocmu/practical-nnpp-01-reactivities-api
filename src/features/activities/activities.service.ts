@@ -12,7 +12,7 @@ import {
   UpdateActivityDto,
 } from './dto';
 import { Prisma } from '@prisma/client';
-import { CursorPaginationService } from 'src/common/querying/cursor-pagination/cursor-pagination.service';
+import { CursorPaginationService } from 'src/common/pagination/cursor-pagination/cursor-pagination.service';
 
 @Injectable()
 export class ActivitiesService {

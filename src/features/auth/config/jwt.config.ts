@@ -1,5 +1,6 @@
 import { registerAs } from '@nestjs/config';
 import { JwtModuleOptions } from '@nestjs/jwt';
+
 export const jwtConfig = registerAs('jwt', () => {
   const config = {
     secret: process.env.JWT_SECRET,

@@ -1,6 +1,6 @@
 import { Type } from 'class-transformer';
 import { IsBoolean, IsDate, IsOptional, IsString } from 'class-validator';
-import { CursorPaginationDto } from 'src/common/querying/cursor-pagination/cursor-pagination.decorator';
+import { CursorPaginationDto } from 'src/common/pagination/cursor-pagination/cursor-pagination.decorator';
 
 export class ActivityPaginationDto extends CursorPaginationDto {
   @IsOptional()

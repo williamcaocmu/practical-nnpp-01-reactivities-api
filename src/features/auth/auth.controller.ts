@@ -6,15 +6,15 @@ import {
   Post,
   Res,
   UseGuards,
+  Body,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Response } from 'express';
 import { AuthService } from './auth.service';
-import { User } from './decorators/user.decorator';
-import { RequestUser } from './types/request-user.type';
-import { JwtGuard } from './guards/jwt-guard/jwt-guard.guard';
 import { PublicRoute } from './decorators/public.decorator';
-import { ProfileResponseMapperDto } from './dto';
+import { User } from './decorators/user.decorator';
+import { RegisterDto } from './dto';
+import { RequestUser } from './types/request-user.type';
 
 @Controller('auth')
 export class AuthController {
@@ -45,5 +45,12 @@ export class AuthController {
   logout(@Res() res: Response) {
     res.clearCookie('token');
     res.sendStatus(HttpStatus.OK);
+  }
+
+  @HttpCode(HttpStatus.CREATED)
+  @PublicRoute()
+  @Post('register')
+  register(@Body() body: RegisterDto) {
+    return this.authService.register(body);
   }
 }

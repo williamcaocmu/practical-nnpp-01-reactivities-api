@@ -60,6 +60,7 @@ export class ActivitiesController {
     return this.activitiesService.attend(id, user);
   }
 
+  @PublicRoute()
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.activitiesService.findOne(id);
