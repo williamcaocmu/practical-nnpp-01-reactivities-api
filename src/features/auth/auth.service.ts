@@ -73,17 +73,16 @@ export class AuthService {
   }
 
   async register(body: RegisterDto) {
-    const { email, password, displayName, username } = body;
-
+    const { email, password, displayName } = body;
     const existingUser = await this.db.user.findUnique({
       where: { email },
     });
-
     if (existingUser) {
       throw new BadRequestException('User already exists');
     }
-
     const hashedPassword = await this.hashingService.hash(password);
+
+    const username = displayName?.toLowerCase().replace(/\s+/g, '-');
 
     await this.db.user.create({
       data: { email, password: hashedPassword, displayName, username },

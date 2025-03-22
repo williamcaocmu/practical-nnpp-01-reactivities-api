@@ -16,6 +16,8 @@ import { User } from './decorators/user.decorator';
 import { RegisterDto } from './dto';
 import { RequestUser } from './types/request-user.type';
 
+const COOKIE_NAME = 'reactivity-token';
+
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -26,10 +28,12 @@ export class AuthController {
   @Post('login')
   async login(@User() user: RequestUser, @Res() res: Response) {
     const token = await this.authService.login(user);
-    res.cookie('token', token, {
-      secure: true,
-      httpOnly: true,
-      sameSite: true,
+    res.cookie(COOKIE_NAME, token, {
+      httpOnly: false, // Makes cookie inaccessible to JavaScript
+      secure: true, // Only sends cookie over HTTPS
+      sameSite: 'lax', // Controls how cookie is sent with cross-site requests
+      path: '/', // Cookie path
+      maxAge: 7 * 24 * 60 * 60 * 1000, // Cookie expiration time
     });
     res.sendStatus(HttpStatus.OK);
   }
@@ -43,7 +47,7 @@ export class AuthController {
   @PublicRoute()
   @Get('logout')
   logout(@Res() res: Response) {
-    res.clearCookie('token');
+    res.clearCookie(COOKIE_NAME);
     res.sendStatus(HttpStatus.OK);
   }
 
