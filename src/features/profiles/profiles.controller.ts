@@ -35,8 +35,8 @@ export class ProfilesController {
   }
 
   @Put('photo/:id/main')
-  setMainPhoto(@Param('id') id: string) {
-    return this.profilesService.setMainPhoto(id);
+  setMainPhoto(@Param('id') id: string, @User() user: RequestUser) {
+    return this.profilesService.setMainPhoto(id, user.id);
   }
 
   @Get(':id')

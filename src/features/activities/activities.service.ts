@@ -31,6 +31,7 @@ export class ActivitiesService {
             isHost: true,
           },
         },
+        hostId: userId,
       },
     });
   }
@@ -41,9 +42,8 @@ export class ActivitiesService {
   }
 
   async findAllPaginated(params: ActivityPaginationDto) {
-    const { limit = 2, cursor, category, isHost, isGoing, startDate } = params;
+    const { limit = 10, cursor, category, isHost, isGoing, startDate } = params;
 
-    // Build filters
     const filters: Prisma.ActivityWhereInput = {};
 
     if (category) {
@@ -57,7 +57,7 @@ export class ActivitiesService {
     }
 
     // Attendance filters
-    const attendeeFilters: any = {};
+    const attendeeFilters: Prisma.ActivityAttendeeListRelationFilter = {};
 
     if (isHost || isGoing) {
       if (!params['userId']) {
@@ -93,15 +93,21 @@ export class ActivitiesService {
       include: {
         host: {
           select: {
+            id: true,
             displayName: true,
+            imageUrl: true,
+            username: true,
           },
         },
         attendees: {
           select: {
+            isHost: true,
             user: {
               select: {
                 id: true,
                 displayName: true,
+                imageUrl: true,
+                username: true,
               },
             },
           },
@@ -109,8 +115,27 @@ export class ActivitiesService {
       },
     });
 
-    const { hasNextPage, nextCursor, items } =
-      this.cursorPaginationService.getMetadata(activities, limit);
+    // Transform the attendees to the desired format
+    const formattedActivities = activities.map((activity) => ({
+      ...activity,
+      attendees: activity.attendees.map((attendee) => ({
+        id: attendee.user.id,
+        displayName: attendee.user.displayName,
+        imageUrl: attendee.user.imageUrl,
+        username: attendee.user.username,
+        isHost: attendee.isHost,
+      })),
+    }));
+
+    // Check if there are more items
+    const hasNextPage = formattedActivities.length > limit;
+    const items = hasNextPage
+      ? formattedActivities.slice(0, limit)
+      : formattedActivities;
+
+    // Get the new cursor
+    const nextCursor =
+      hasNextPage && items.length > 0 ? items[items.length - 1].id : null;
 
     return {
       items,
@@ -148,12 +173,16 @@ export class ActivitiesService {
         },
       },
     });
+
     if (!activity) throw new NotFoundException('Activity not found');
 
     return {
       ...activity,
       attendees: activity.attendees.map((attendee) => ({
-        ...attendee.user,
+        id: attendee.user.id,
+        displayName: attendee.user.displayName,
+        imageUrl: attendee.user.imageUrl,
+        username: attendee.user.username,
         isHost: attendee.isHost,
       })),
     };
@@ -199,17 +228,19 @@ export class ActivitiesService {
         attendees: true,
       },
     });
+
     if (!activity) throw new NotFoundException('Activity not found');
 
     const attendance = activity.attendees.find(
       ({ userId }) => userId === user.id,
     );
     const isHost = activity.attendees.some(
-      ({ userId, isHost }) => userId === user.id && isHost,
+      ({ userId }) => userId === user.id && activity.hostId === user.id,
     );
 
     if (isHost) {
       //  if host, cancel activity
+      console.log('cancelling activity', activity.isCanceled);
       await this.db.activity.update({
         where: { id },
         data: { isCanceled: !activity.isCanceled },
@@ -217,6 +248,7 @@ export class ActivitiesService {
     } else {
       if (attendance) {
         // delete attendance
+
         await this.db.activityAttendee.delete({
           where: {
             userId_activityId: {
@@ -227,6 +259,7 @@ export class ActivitiesService {
         });
       } else {
         // create attendance
+
         await this.db.activityAttendee.create({
           data: {
             userId: user.id,

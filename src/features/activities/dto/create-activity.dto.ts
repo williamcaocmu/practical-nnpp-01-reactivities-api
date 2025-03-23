@@ -46,10 +46,6 @@ export class CreateActivityDto implements ActivityCreateInput {
   @IsNotEmpty()
   longitude: number;
 
-  @IsString()
-  @IsNotEmpty()
-  hostId: string;
-
   @IsBoolean()
   @IsOptional()
   isCancelled?: boolean;

@@ -21,14 +21,17 @@ export class ProfilesService {
       throw new NotFoundException('Profile not found');
     }
 
-    const result = await this.fileService.upload(file);
+    // transaction
+    return this.db.$transaction(async (tx) => {
+      const result = await this.fileService.upload(file);
 
-    await this.db.photo.create({
-      data: {
-        url: result.secure_url,
-        publicId: result.public_id,
-        userId: profileId,
-      },
+      await this.db.photo.create({
+        data: {
+          url: result.secure_url,
+          publicId: result.public_id,
+          userId: profileId,
+        },
+      });
     });
   }
 
@@ -121,7 +124,7 @@ export class ProfilesService {
     return photos;
   }
 
-  async setMainPhoto(photoId: string) {
+  async setMainPhoto(photoId: string, userId: string) {
     const photo = await this.db.photo.findUnique({
       where: { id: photoId },
     });
@@ -141,6 +144,12 @@ export class ProfilesService {
       await tx.photo.update({
         where: { id: photoId },
         data: { isMain: true },
+      });
+
+      // update user imageUrl
+      await tx.user.update({
+        where: { id: userId },
+        data: { imageUrl: photo.url },
       });
     });
   }

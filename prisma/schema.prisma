@@ -49,7 +49,7 @@ model User {
   password    String
   displayName String
   username    String  @unique
-  imageUrl    String?
+  imageUrl    String? @default("https://img.freepik.com/free-psd/3d-render-avatar-character_23-2150611731.jpg?semt=ais_hybrid")
 
   // User can host multiple activities
   hostedActivities Activity[] @relation("HostedActivities")
