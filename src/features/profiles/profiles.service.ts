@@ -50,7 +50,7 @@ export class ProfilesService {
     });
   }
 
-  async getProfile(profileId: string) {
+  async getProfile(profileId: string, observerId: string) {
     const profile = await this.db.user.findUnique({
       where: { id: profileId },
       select: {
@@ -93,12 +93,18 @@ export class ProfilesService {
         },
       },
     });
+
+    const isFollowing =
+      observerId === profileId
+        ? false
+        : profile.followers.some(({ follower }) => follower.id === observerId);
+
     return {
       ...profile,
       followersCount: profile.followers.length,
       followingCount: profile.following.length,
-      followers: profile.followers.map((follower) => follower.follower),
-      following: profile.following.map((following) => following.following),
+      followers: undefined,
+      following: isFollowing,
     };
   }
 

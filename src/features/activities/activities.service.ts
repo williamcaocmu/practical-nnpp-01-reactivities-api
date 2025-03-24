@@ -36,12 +36,12 @@ export class ActivitiesService {
     });
   }
 
-  async findAll() {
+  async findAll(observerId?: string) {
     // Redirect to paginated version with default parameters
-    return this.findAllPaginated({});
+    return this.findAllPaginated({} as any, observerId);
   }
 
-  async findAllPaginated(params: ActivityPaginationDto) {
+  async findAllPaginated(params: ActivityPaginationDto, observerId?: string) {
     const { limit = 10, cursor, category, isHost, isGoing, startDate } = params;
 
     const filters: Prisma.ActivityWhereInput = {};
@@ -108,6 +108,15 @@ export class ActivitiesService {
                 displayName: true,
                 imageUrl: true,
                 username: true,
+                followers: {
+                  select: {
+                    follower: {
+                      select: {
+                        id: true,
+                      },
+                    },
+                  },
+                },
               },
             },
           },
@@ -124,6 +133,9 @@ export class ActivitiesService {
         imageUrl: attendee.user.imageUrl,
         username: attendee.user.username,
         isHost: attendee.isHost,
+        following: attendee.user.followers
+          .map(({ follower }) => follower.id)
+          .includes(observerId),
       })),
     }));
 
@@ -239,8 +251,6 @@ export class ActivitiesService {
     );
 
     if (isHost) {
-      //  if host, cancel activity
-      console.log('cancelling activity', activity.isCanceled);
       await this.db.activity.update({
         where: { id },
         data: { isCanceled: !activity.isCanceled },

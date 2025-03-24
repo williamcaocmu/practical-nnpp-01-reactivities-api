@@ -32,26 +32,9 @@ export class ActivitiesController {
     return this.activitiesService.create(createActivityDto, id);
   }
 
-  @PublicRoute()
   @Get()
-  findAll() {
-    return this.activitiesService.findAll();
-  }
-
-  @PublicRoute()
-  @Get('paginated')
-  findAllPaginated(
-    @Query() query: ActivityPaginationDto,
-    @User() user?: RequestUser,
-  ) {
-    // Add user ID to params if user is authenticated and using isHost/isGoing filters
-    if (user && (query.isHost || query.isGoing)) {
-      return this.activitiesService.findAllPaginated({
-        ...query,
-        userId: user.id,
-      });
-    }
-    return this.activitiesService.findAllPaginated(query);
+  findAll(@User() user: RequestUser) {
+    return this.activitiesService.findAll(user?.id);
   }
 
   @HttpCode(HttpStatus.OK)

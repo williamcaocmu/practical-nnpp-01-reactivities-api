@@ -40,8 +40,8 @@ export class ProfilesController {
   }
 
   @Get(':id')
-  getProfile(@Param('id') id: string) {
-    return this.profilesService.getProfile(id);
+  getProfile(@Param('id') id: string, @User() user: RequestUser) {
+    return this.profilesService.getProfile(id, user.id);
   }
 
   @Get(':id/photos')
