@@ -23,8 +23,8 @@ model Activity {
   description String
   category    String
   isCanceled  Boolean  @default(false)
-  city        String
-  venue       String
+  city        String?
+  venue       String?
   latitude    Float
   longitude   Float
   date        DateTime
@@ -34,6 +34,7 @@ model Activity {
   host   User   @relation("HostedActivities", fields: [hostId], references: [id])
 
   attendees ActivityAttendee[]
+  comments  Comment[]
 
   @@index([hostId])
   @@index([date])
@@ -62,6 +63,7 @@ model User {
 
   following UserFollowings[] @relation("Following")
   followers UserFollowings[] @relation("Followers")
+  comments  Comment[]
 
   @@index([username])
 }
@@ -109,4 +111,17 @@ model UserFollowings {
   following User @relation("Followers", fields: [followingId], references: [id])
 
   @@id([followerId, followingId])
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  body   String
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  activityId String
+  activity   Activity @relation(fields: [activityId], references: [id])
 }

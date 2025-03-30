@@ -22,16 +22,16 @@ export class CreateActivityDto implements ActivityCreateInput {
   @IsNotEmpty()
   description: string;
 
-  @IsDateString()
-  @IsNotEmpty()
-  date: Date;
-
   @IsString()
   @IsNotEmpty()
+  date: string;
+
+  @IsString()
+  @IsOptional()
   city: string;
 
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   venue: string;
 
   @IsString()

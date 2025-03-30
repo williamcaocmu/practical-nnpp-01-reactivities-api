@@ -1,24 +1,21 @@
 import {
-  Controller,
-  Get,
-  Post,
   Body,
-  Patch,
-  Param,
+  Controller,
   Delete,
-  HttpStatus,
+  Get,
   HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
   Query,
 } from '@nestjs/common';
-import { ActivitiesService } from './activities.service';
-import {
-  ActivityPaginationDto,
-  CreateActivityDto,
-  UpdateActivityDto,
-} from './dto';
 import { PublicRoute } from '../auth/decorators/public.decorator';
 import { User } from '../auth/decorators/user.decorator';
 import { RequestUser } from '../auth/types/request-user.type';
+import { ActivitiesService } from './activities.service';
+import { CreateActivityDto, UpdateActivityDto } from './dto';
+import { ActivityQueryDto } from './dto/activity-query.dto';
 
 @Controller('activities')
 export class ActivitiesController {
@@ -33,8 +30,8 @@ export class ActivitiesController {
   }
 
   @Get()
-  findAll(@User() user: RequestUser) {
-    return this.activitiesService.findAll(user?.id);
+  async findAll(@User() user: RequestUser, @Query() query: ActivityQueryDto) {
+    return this.activitiesService.findAll(user.id, query);
   }
 
   @HttpCode(HttpStatus.OK)

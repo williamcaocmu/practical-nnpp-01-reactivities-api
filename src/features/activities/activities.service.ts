@@ -12,14 +12,11 @@ import {
   UpdateActivityDto,
 } from './dto';
 import { Prisma } from '@prisma/client';
-import { CursorPaginationService } from 'src/common/pagination/cursor-pagination/cursor-pagination.service';
+import { ActivityQueryDto } from './dto/activity-query.dto';
 
 @Injectable()
 export class ActivitiesService {
-  constructor(
-    private readonly db: PrismaService,
-    private readonly cursorPaginationService: CursorPaginationService,
-  ) {}
+  constructor(private readonly db: PrismaService) {}
 
   create(createActivityDto: CreateActivityDto, userId: string) {
     return this.db.activity.create({
@@ -36,23 +33,19 @@ export class ActivitiesService {
     });
   }
 
-  async findAll(observerId?: string) {
-    // Redirect to paginated version with default parameters
-    return this.findAllPaginated({} as any, observerId);
+  async findAll(observerId: string, query: ActivityQueryDto) {
+    return this.findAllPaginated(observerId, query);
   }
 
-  async findAllPaginated(params: ActivityPaginationDto, observerId?: string) {
-    const { limit = 10, cursor, category, isHost, isGoing, startDate } = params;
+  async findAllPaginated(observerId: string, params: ActivityQueryDto) {
+    const { limit = 2, cursor, isHost, isGoing, startDate } = params;
+    const take = Number(limit);
 
     const filters: Prisma.ActivityWhereInput = {};
 
-    if (category) {
-      filters.category = category;
-    }
-
     if (startDate) {
       filters.date = {
-        gte: startDate,
+        gte: startDate ? new Date(startDate) : new Date(),
       };
     }
 
@@ -60,34 +53,27 @@ export class ActivitiesService {
     const attendeeFilters: Prisma.ActivityAttendeeListRelationFilter = {};
 
     if (isHost || isGoing) {
-      if (!params['userId']) {
-        throw new BadRequestException(
-          'userId is required when using isHost or isGoing filters',
-        );
-      }
-
       if (isHost) {
         attendeeFilters.some = {
-          userId: params['userId'],
-          isHost: true,
+          userId: observerId,
+          activity: {
+            hostId: observerId,
+          },
         };
       } else if (isGoing) {
         attendeeFilters.some = {
-          userId: params['userId'],
+          userId: observerId,
         };
-      }
-
-      if (Object.keys(attendeeFilters).length > 0) {
-        filters.attendees = attendeeFilters;
       }
     }
 
-    const { cursor: cursorParams, take } =
-      this.cursorPaginationService.generateCursor(cursor, limit);
+    if (Object.keys(attendeeFilters).length > 0) {
+      filters.attendees = attendeeFilters;
+    }
 
     const activities = await this.db.activity.findMany({
-      take,
-      cursor: cursorParams,
+      take: take + 1,
+      ...(cursor && { cursor: { id: cursor } }),
       where: filters,
       orderBy: [{ date: 'desc' }, { id: 'asc' }],
       include: {
@@ -124,7 +110,6 @@ export class ActivitiesService {
       },
     });
 
-    // Transform the attendees to the desired format
     const formattedActivities = activities.map((activity) => ({
       ...activity,
       attendees: activity.attendees.map((attendee) => ({
@@ -139,15 +124,13 @@ export class ActivitiesService {
       })),
     }));
 
-    // Check if there are more items
-    const hasNextPage = formattedActivities.length > limit;
-    const items = hasNextPage
-      ? formattedActivities.slice(0, limit)
-      : formattedActivities;
+    const hasNextPage = formattedActivities.length > take;
 
-    // Get the new cursor
-    const nextCursor =
-      hasNextPage && items.length > 0 ? items[items.length - 1].id : null;
+    const nextCursor = hasNextPage ? formattedActivities[take].id : null;
+
+    const items = hasNextPage
+      ? formattedActivities.slice(0, take)
+      : formattedActivities;
 
     return {
       items,
