@@ -3,7 +3,7 @@ import { hash, genSalt } from 'bcrypt';
 
 const prisma = new PrismaClient();
 
-const activities: Prisma.ActivityCreateInput[] = [
+const activities = [
   {
     title: 'Past Activity 1',
     date: new Date(new Date().setMonth(new Date().getMonth() - 2)),
